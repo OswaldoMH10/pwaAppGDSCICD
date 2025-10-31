@@ -1,0 +1,130 @@
+body {
+    font-family: 'Comic Neue', cursive;
+    margin: 0;
+    background-color: #F5F7FA;
+    animation: aparecer 1.2s ease-in-out;
+}
+
+@keyframes aparecer {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* HEADER */
+header {
+    background: linear-gradient(90deg, #06D6A0, #118AB2);
+    color: white;
+    text-align: center;
+    padding: 25px 0;
+    animation: slideDown 1s ease-out;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-80px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+h1 {
+    letter-spacing: 2px;
+    animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 2px 2px 5px rgba(255,255,255,0.3); }
+    to { text-shadow: 2px 2px 15px rgba(255,255,255,0.9); }
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-weight: bold;
+    transition: transform 0.3s;
+}
+
+nav a:hover {
+    transform: scale(1.2);
+    color: #FFD166;
+}
+
+/* MAIN CONTENT */
+main {
+    padding: 20px;
+    max-width: 1000px;
+    margin: auto;
+}
+
+section {
+    background: white;
+    padding: 15px;
+    margin-bottom: 30px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    animation: floatCard 2.5s ease-in-out infinite;
+}
+
+@keyframes floatCard {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+h2 {
+    color: #118AB2;
+    border-left: 5px solid #FFD166;
+    padding-left: 8px;
+}
+
+.intro {
+    background-color: #E8F0FE;
+    border-left: 8px solid #118AB2;
+    padding: 8px;
+}
+
+.tema-lista a {
+    color: #EF476F;
+    text-decoration: none;
+    display: inline-block;
+    margin: 5px 0;
+    transition: transform 0.3s;
+}
+
+.tema-lista a:hover {
+    transform: translateX(10px);
+    color: #06D6A0;
+}
+
+/* FOOTER */
+footer {
+    background-color: #118AB2;
+    color: white;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Estilos para imágenes dentro de secciones */
+section img {
+    display: block;
+    margin: 2rem auto; /* Centra la imagen horizontalmente y agrega espacio arriba/abajo */
+    max-width: 100%; /* La imagen nunca superará el ancho del contenedor */
+    height: auto; /* Mantiene la proporción de aspecto */
+    border-radius: 8px; /* Bordes redondeados opcionales */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave opcional */
+}
+
+/* Para imágenes horizontales (más anchas que altas) */
+section img[style*="width"] {
+    max-width: 90%;
+}
+
+/* Responsive: en pantallas pequeñas */
+@media (max-width: 768px) {
+    section img {
+        max-width: 100%;
+        margin: 1.5rem auto;
+    }
+    
+    .imagen-contenedor img {
+        max-height: 400px;
+    }
+}
