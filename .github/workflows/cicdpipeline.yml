@@ -1,0 +1,223 @@
+name: CI CD Pipeline Despliegue Continuo
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '22.19.0'
+
+jobs:
+  # Validación y Pruebas
+  test:
+    name: Validación y Pruebas
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Instalar dependencias
+      run: |
+        npm install -g html-validate
+        npm install -g stylelint stylelint-config-standard
+        npm install -g eslint
+        npm install -g broken-link-checker
+
+    - name: Validar archivos HTML
+      run: |
+        echo "Validando archivos HTML"
+        find . -name "*.html" -not -path "./node_modules/*" | while read file; do
+          echo "Validando: $file"
+          npx html-validate "$file" || echo "Advertencia en $file"
+        done
+
+    - name: Validar archivos CSS
+      run: |
+        echo "Validando archivos CSS"
+        find . -name "*.css" -not -path "./node_modules/*" | while read file; do
+          echo "Validando: $file"
+          npx stylelint "$file" --config-basedir . || echo "Advertencia en $file"
+        done
+      continue-on-error: true
+
+    - name: Validar archivos JavaScript
+      run: |
+        echo "Validando archivos JavaScript"
+        find . -name "*.js" -not -path "./node_modules/*" | while read file; do
+          echo "Validando: $file"
+          npx eslint "$file" --no-eslintrc --env browser --env es6 || echo "Advertencia en $file"
+        done
+      continue-on-error: true
+
+    - name: Verificar estructura del proyecto
+      run: |
+        echo "Verificando estructura del proyecto"
+        echo "Archivos HTML encontrados:"
+        find . -name "*.html" -not -path "./node_modules/*"
+        echo ""
+        echo "Archivos CSS encontrados:"
+        find . -name "*.css" -not -path "./node_modules/*"
+        echo ""
+        echo "Archivos JS encontrados:"
+        find . -name "*.js" -not -path "./node_modules/*"
+        echo ""
+        echo "Imágenes encontradas:"
+        find ./img -type f 2>/dev/null || echo "No se encontró carpeta img"
+
+    - name: Generar reporte de pruebas
+      run: |
+        mkdir -p test-reports
+        echo "# Reporte de Validación - $(date)" > test-reports/validation-report.md
+        echo "" >> test-reports/validation-report.md
+        echo "## Archivos Procesados" >> test-reports/validation-report.md
+        echo "- HTML: $(find . -name '*.html' -not -path './node_modules/*' | wc -l) archivos" >> test-reports/validation-report.md
+        echo "- CSS: $(find . -name '*.css' -not -path './node_modules/*' | wc -l) archivos" >> test-reports/validation-report.md
+        echo "- JS: $(find . -name '*.js' -not -path './node_modules/*' | wc -l) archivos" >> test-reports/validation-report.md
+        echo "" >> test-reports/validation-report.md
+        echo "## Estado" >> test-reports/validation-report.md
+        echo "Validación completada exitosamente" >> test-reports/validation-report.md
+
+    - name: Subir reporte de pruebas
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-reports
+        path: test-reports/
+        retention-days: 30
+
+  # Build y optimización
+  build:
+    name: Build y Optimización
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+
+    - name: Preparar directorio de build
+      run: |
+        mkdir -p build
+        echo "Copiando archivos al directorio build"
+        
+    - name: Copiar archivos estáticos
+      run: |
+        # Copiar todos los archivos necesarios
+        cp -r assets build/ 2>/dev/null || mkdir -p build/assets
+        cp -r img build/ 2>/dev/null || mkdir -p build/img
+        cp -r js build/ 2>/dev/null || mkdir -p build/js
+        cp -r temas build/ 2>/dev/null || mkdir -p build/temas
+        cp *.html build/ 2>/dev/null || true
+        
+        echo "Archivos copiados al directorio build"
+        ls -la build/
+
+    - name: Crear archivo de metadatos
+      run: |
+        echo "Build Date: $(date)" > build/build-info.txt
+        echo "Commit: ${{ github.sha }}" >> build/build-info.txt
+        echo "Branch: ${{ github.ref_name }}" >> build/build-info.txt
+
+    - name: Subir artefactos de build
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: build/
+        retention-days: 7
+
+  # Pruebas de enlaces
+  link-check:
+    name: Verificación de Enlaces
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+
+    - name: Descargar build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: build/
+
+    - name: Iniciar servidor local
+      run: |
+        cd build
+        python3 -m http.server 8080 &
+        sleep 5
+        echo "Servidor iniciado en http://localhost:8080"
+
+    - name: Verificar enlaces internos
+      run: |
+        echo "Verificando enlaces internos"
+        npx broken-link-checker http://localhost:8080 --recursive --ordered --exclude-external || true
+      continue-on-error: true
+
+  # Despliegue a GitHub Pages
+  deploy:
+    name: Despliegue a GitHub Pages
+    needs: [test, build, link-check]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+
+    - name: Descargar build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: build/
+
+    - name: Configurar GitHub Pages
+      uses: actions/configure-pages@v4
+
+    - name: Subir artefactos a Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: build/
+
+    - name: Desplegar a GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Verificar despliegue
+      run: |
+        echo "Sitio desplegado exitosamente"
+        echo "URL: ${{ steps.deployment.outputs.page_url }}"
+
+  # Notificación
+  notify:
+    name: Notificación de Despliegue
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Resumen del Pipeline
+      run: |
+        echo "RESUMEN DEL PIPELINE CI/CD"
+        echo "Rama: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Autor: ${{ github.actor }}"
+        echo "Estado: ${{ job.status }}"

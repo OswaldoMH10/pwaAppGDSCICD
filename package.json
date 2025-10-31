@@ -1,0 +1,22 @@
+{
+  "name": "pwaappgdscicd",
+  "version": "1.0.0",
+  "description": "Plataforma educativa de matemáticas para 6to grado de primaria",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo 'Test running...'",
+    "serve": "python3 -m http.server 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OswaldoMH10/pwaAppGDSCICD.git"
+  },
+  "keywords": ["educacion", "matematicas", "primaria"],
+  "author": "Equipo GPDS UTP",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/OswaldoMH10/pwaAppGDSCICD/issues"
+  },
+  "homepage": "https://github.com/OswaldoMH10/pwaAppGDSCICD#readme"
+}
